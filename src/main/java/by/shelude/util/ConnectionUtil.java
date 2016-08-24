@@ -9,7 +9,7 @@ import java.io.IOException;
 public class ConnectionUtil {
 
     public static Document get(String url) {
-        Connection connection = Jsoup.connect(url).userAgent(ParserParameters.USER_AGENT);
+        Connection connection = Jsoup.connect(url).userAgent(ParserParameters.USER_AGENT).timeout(60000);
         Document document = null;
         try {
             document = connection.get();
@@ -18,5 +18,7 @@ public class ConnectionUtil {
         }
         return document;
     }
+
+
     
 }

@@ -13,8 +13,8 @@ public enum Transport {
     private String routeNumber;
     private String routeName;
     private List<String> stopList;
-    private HashMap<String, Timetable> directRoute;
-    private HashMap<String, Timetable> reverseRoute;
+    private HashMap<String, Timetable> directRoute = new HashMap<>();
+    private HashMap<String, Timetable> reverseRoute = new HashMap<>();
 
     public long getId() {
         return id;
@@ -56,12 +56,20 @@ public enum Transport {
         this.directRoute = directRoute;
     }
 
+    public void addToDirectRoute(String dayOfWeek, Timetable timetable) {
+        directRoute.put(dayOfWeek, timetable);
+    }
+
     public HashMap<String, Timetable> getReverseRoute() {
         return reverseRoute;
     }
 
     public void setReverseRoute(HashMap<String, Timetable> reverseRoute) {
         this.reverseRoute = reverseRoute;
+    }
+
+    public void addToReverseRoute(String dayOfWeek, Timetable timetable) {
+        reverseRoute.put(dayOfWeek, timetable);
     }
 
     @Override
