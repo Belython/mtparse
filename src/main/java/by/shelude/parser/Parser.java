@@ -14,9 +14,6 @@ import java.util.regex.Pattern;
 
 public class Parser {
 
-    private List<String> allBuses;
-    private String routeNumber;
-    private String routeName;
 
     private static Parser instance;
 
@@ -30,11 +27,6 @@ public class Parser {
         return instance;
     }
 
-
-
-
-
-
     public void parse() {
         for (String transportType: RequestParametersValues.TRANSPORT_LIST) {
             HashMap<String, String> requeastParameters = new HashMap<>();
@@ -47,13 +39,13 @@ public class Parser {
     }
 
     private void parseTrasport(Transport currentTransport, HashMap<String, String> requeastParameters) {
-        Document transportListDocument = visitGet(requeastParameters);
+        Document transportListDocument = URLHandler.getInstance().visitGet(requeastParameters);
         Elements tranportRouteElements = transportListDocument.getElementsByAttributeValueContaining(Attributes.HREF, "?" + RequestParameters.ROUTE_NUMBER);
         for (Element transportRouteElement: tranportRouteElements) {
             String transportRouteURL = transportRouteElement.attr(Attributes.HREF);
             String routeNumberAndName = transportRouteElement.text();
-            routeName = StringHandler.extractString(routeNumberAndName, Regexp.ROUTE_NAME).trim();
-            routeNumber = StringHandler.getParameterValue(transportRouteURL, RequestParameters.ROUTE_NUMBER);
+            String routeName = StringHandler.extractString(routeNumberAndName, Regexp.ROUTE_NAME).trim();
+            String routeNumber = StringHandler.getParameterValue(transportRouteURL, RequestParameters.ROUTE_NUMBER);
             requeastParameters.put(RequestParameters.ROUTE_NUMBER, routeNumber);
             currentTransport.setRouteName(routeName);
             currentTransport.setRouteNumber(routeNumber);
@@ -70,7 +62,7 @@ public class Parser {
     }
 
     private List<Timetable> parseStopList(HashMap<String, String> requeastParameters) {
-        Document tranportStopsDocument = visitGet(requeastParameters);
+        Document tranportStopsDocument = URLHandler.getInstance().visitGet(requeastParameters);
         Elements tramnsportStopsElements = tranportStopsDocument.getElementsByAttributeValueContaining("href", RequestParameters.STOP_ID);
         Timetable directTimetable = new Timetable();
         Timetable revetseTimetable = new Timetable();
@@ -94,8 +86,8 @@ public class Parser {
         return timetableList;
     }
 
-    private List<String> parseTimetable(HashMap<String, String> requeastParameters) {
-        Document timetableDocument = visitGet(requeastParameters);
+    public static List<String> parseTimetable(HashMap<String, String> requeastParameters) {
+        Document timetableDocument = URLHandler.getInstance().visitGet(requeastParameters);
         String numRegExp = Regexp.NUMBER;
         Elements tableElements = timetableDocument.getElementsMatchingText(Regexp.NUMBER).select("b:matchesOwn(" + Regexp.NUMBER + ")");
         List<String> timetable = new ArrayList<>();

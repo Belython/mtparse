@@ -35,7 +35,7 @@ public class URLHandler {
         return root;
     }
 
-    public static Document visitGet(HashMap<String, String> parameters) {
+    public Document visitGet(HashMap<String, String> parameters) {
         StringBuilder url = new StringBuilder(ParserParameters.PAGE + "?");
         Set<String> parametersSet = parameters.keySet();
         for (String parameter : parametersSet) {
