@@ -2,6 +2,7 @@ package by.shelude.entities;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by dkanarsky on 23.08.2016.
@@ -84,5 +85,19 @@ public enum Transport {
             default:
                 return null;
         }
+    }
+
+    public String getInfo() {
+        String info = routeName + "\n" +
+                routeNumber + "\n";
+        Set<String> stops = directRoute.keySet();
+        System.out.println("Маршрут: " + info);
+        System.out.println("становки:");
+        Set<String> s = directRoute.get("1").keySet();
+        for (String s1: s) {
+            System.out.println(s1);
+        }
+        System.out.println();
+        return null;
     }
 }

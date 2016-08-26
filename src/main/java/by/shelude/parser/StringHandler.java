@@ -11,10 +11,18 @@ import java.util.regex.Pattern;
 public class StringHandler {
 
     public static String getParameterValue(String targetURL, String parameter) {
-        String regExp = parameter + "=\\w+\\W";
+        String regExp = parameter + "=[\\w%<>а-яА-Я]+&";
         String fullParameter = extractString(targetURL, regExp);
-        String valRegExp = "=\\w+";
-        String value = extractString(fullParameter, valRegExp).substring(1);
+        String valRegExp = "=[\\w%<>а-яА-Я]+";
+        String value = null;
+        try {
+            String foo = extractString(fullParameter, valRegExp);
+            value = foo.substring(1);
+        } catch (StringIndexOutOfBoundsException e) {
+            e.printStackTrace();
+            System.out.println(extractString(fullParameter, valRegExp));
+            System.out.println(fullParameter);
+        }
         return value;
     }
 
@@ -22,7 +30,14 @@ public class StringHandler {
         Pattern pattern = Pattern.compile(regExp);
         Matcher matcher = pattern.matcher(targetString);
         matcher.find();
-        String result = matcher.group();
+        String result = null;
+        try {
+            result = matcher.group();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(targetString + " target");
+            System.out.println(regExp + " regexp");
+        }
         return result;
     }
 

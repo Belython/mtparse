@@ -32,18 +32,10 @@ public class Parser {
 
 
 
-    private Document visitGet(HashMap<String, String> parameters) {
-        StringBuilder url = new StringBuilder(ParserParameters.PAGE + "?");
-        Set<String> parametersSet = parameters.keySet();
-        for (String parameter : parametersSet) {
-            url.append(parameter + "=" + parameters.get(parameter) + "&");
-        }
-        Document document = URLHandler.getInstance().getRootDocument(url.toString());
-        return document;
-    }
 
 
-    private void parse() {
+
+    public void parse() {
         for (String transportType: RequestParametersValues.TRANSPORT_LIST) {
             HashMap<String, String> requeastParameters = new HashMap<>();
             requeastParameters.put(RequestParameters.TRANSPORT, transportType);
@@ -55,30 +47,31 @@ public class Parser {
     }
 
     private void parseTrasport(Transport currentTransport, HashMap<String, String> requeastParameters) {
-            Document transportListDocument = visitGet(requeastParameters);
-            Elements tranportRouteElements = transportListDocument.getElementsByAttributeValueContaining(Attributes.HREF, "?" + Values.ROUTE_NUMBER.toString());
-            for (Element transportRouteElement: tranportRouteElements) {
-                String transportRouteURL = transportRouteElement.attr(Attributes.HREF);
-                String routeNumberAndName = transportRouteElement.text();
-                routeName = StringHandler.extractString(routeNumberAndName, Regexp.ROUTE_NAME).trim();
-                routeNumber = StringHandler.getParameterValue(transportRouteURL, RequestParameters.ROUTE_NUMBER);
-                requeastParameters.put(RequestParameters.ROUTE_NUMBER, routeNumber);
-                currentTransport.setRouteName(routeName);
-                currentTransport.setRouteNumber(routeNumber);
-                for (String dayOfWeek: RequestParametersValues.DAY_LIST) {
-                    requeastParameters.put(RequestParameters.DAY, dayOfWeek);
-                    List<Timetable> timetableList = parseStopList(requeastParameters);
-                    currentTransport.addToDirectRoute(dayOfWeek, timetableList.get(0));
-                    currentTransport.addToDirectRoute(dayOfWeek, timetableList.get(1));
-
-                }
+        Document transportListDocument = visitGet(requeastParameters);
+        Elements tranportRouteElements = transportListDocument.getElementsByAttributeValueContaining(Attributes.HREF, "?" + RequestParameters.ROUTE_NUMBER);
+        for (Element transportRouteElement: tranportRouteElements) {
+            String transportRouteURL = transportRouteElement.attr(Attributes.HREF);
+            String routeNumberAndName = transportRouteElement.text();
+            routeName = StringHandler.extractString(routeNumberAndName, Regexp.ROUTE_NAME).trim();
+            routeNumber = StringHandler.getParameterValue(transportRouteURL, RequestParameters.ROUTE_NUMBER);
+            requeastParameters.put(RequestParameters.ROUTE_NUMBER, routeNumber);
+            currentTransport.setRouteName(routeName);
+            currentTransport.setRouteNumber(routeNumber);
+            for (String dayOfWeek: RequestParametersValues.DAY_LIST) {
+                requeastParameters.put(RequestParameters.DAY, dayOfWeek);
+                List<Timetable> timetableList = parseStopList(requeastParameters);
+                currentTransport.addToDirectRoute(dayOfWeek, timetableList.get(0));
+                currentTransport.addToReverseRoute(dayOfWeek, timetableList.get(1));
+                System.out.println(currentTransport.getRouteNumber() + " " + currentTransport.getRouteName() + " зделан частично");
             }
+            System.out.println(currentTransport.getRouteNumber() + " " + currentTransport.getRouteName() + " зделан полностью");
         }
+        requeastParameters.remove(RequestParameters.ROUTE_NUMBER);
     }
 
     private List<Timetable> parseStopList(HashMap<String, String> requeastParameters) {
         Document tranportStopsDocument = visitGet(requeastParameters);
-        Elements tramnsportStopsElements = tranportStopsDocument.getElementsByAttributeValueContaining("href", "?" + Values.ROUTE_NUMBER.toString());
+        Elements tramnsportStopsElements = tranportStopsDocument.getElementsByAttributeValueContaining("href", RequestParameters.STOP_ID);
         Timetable directTimetable = new Timetable();
         Timetable revetseTimetable = new Timetable();
         for (Element transportStopElement: tramnsportStopsElements) {
@@ -90,31 +83,37 @@ public class Parser {
             requeastParameters.put(RequestParameters.ROUTE_TYPE, transportRouteType);
             List<String> timetable = parseTimetable(requeastParameters);
             if (transportRouteType.equals(RequestParametersValues.ROUTE_TYPE_DIRECT)) {
-                directTimetable.putInTimeTable(transportStopName, timetable);
+                directTimetable.put(transportStopName, timetable);
             } else {
-                revetseTimetable.putInTimeTable(transportStopName, timetable);
+                revetseTimetable.put(transportStopName, timetable);
             }
         }
         List<Timetable> timetableList = Arrays.asList(directTimetable, revetseTimetable);
+        requeastParameters.remove(RequestParameters.STOP_ID);
+        requeastParameters.remove(RequestParameters.ROUTE_TYPE);
         return timetableList;
     }
 
     private List<String> parseTimetable(HashMap<String, String> requeastParameters) {
         Document timetableDocument = visitGet(requeastParameters);
         String numRegExp = Regexp.NUMBER;
-        Elements tableElements = timetableDocument.getElementsByTag("b");
+        Elements tableElements = timetableDocument.getElementsMatchingText(Regexp.NUMBER).select("b:matchesOwn(" + Regexp.NUMBER + ")");
         List<String> timetable = new ArrayList<>();
         for (Element hourElement: tableElements) {
             String hour = hourElement.text();
-            if (hour.matches(numRegExp)) {
-                Node minuteNode = hourElement.nextSibling();
-                String minutes = minuteNode.toString();
-                Pattern pattern = Pattern.compile(numRegExp);
-                Matcher matcher = pattern.matcher(minutes);
-                while (matcher.find()) {
-                    String minute = matcher.group();
-                    timetable.add(hour + " : " + minute);
-                }
+            Node minuteNode = hourElement.nextSibling();
+            String minutes = minuteNode.toString();
+            Pattern pattern = Pattern.compile(numRegExp);
+            Matcher matcher = pattern.matcher(minutes);
+            while (matcher.find()) {
+                String minute = matcher.group();
+                timetable.add(hour + " : " + minute);
+            }
+            Element nextSibling = hourElement.nextElementSibling();
+            while (nextSibling.tagName().equals("u")) {
+                String minute = nextSibling.text();
+                timetable.add(hour + " : " + minute);
+                nextSibling = nextSibling.nextElementSibling();
             }
         }
         return timetable;
