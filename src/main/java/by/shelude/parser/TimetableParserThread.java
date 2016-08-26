@@ -27,15 +27,20 @@ public class TimetableParserThread implements Runnable {
     private Timetable reverseTimetable;
     private String transportStopName;
     private HashMap<String, String> requeastParameters;
+    private List<TimetableParserThread> threadGroup;
+    private static final Object directMonitor = new Object();
+    private static final Object reverseMonitor = new Object();
 
     public TimetableParserThread(Timetable directTimetable, Timetable reverseTimetable,
-                                 HashMap<String, String> requeastParameters, String transportStopName) {
+                                 HashMap<String, String> requeastParameters, String transportStopName,
+                                 List<TimetableParserThread> threadGroup) {
         counter++;
         String name = "timetableParser " + counter;
         this.directTimetable = directTimetable;
         this.reverseTimetable = reverseTimetable;
         this.transportStopName = transportStopName;
-        this.requeastParameters = requeastParameters;
+        this.requeastParameters = (HashMap<String, String>) requeastParameters.clone();
+        this.threadGroup = threadGroup;
         thread = new Thread(this, name);
         this.thread.start();
     }
@@ -66,13 +71,16 @@ public class TimetableParserThread implements Runnable {
         }
         String transportRouteType = requeastParameters.get(RequestParameters.ROUTE_TYPE);
         if (transportRouteType.equals(RequestParametersValues.ROUTE_TYPE_DIRECT)) {
-            synchronized (directTimetable) {
+            synchronized (directMonitor) {
                 directTimetable.put(transportStopName, timetable);
+                threadGroup.remove(this);
             }
         } else {
-            synchronized (reverseTimetable) {
+            synchronized (reverseMonitor) {
                 reverseTimetable.put(transportStopName, timetable);
+                threadGroup.remove(this);
             }
         }
+
     }
 }

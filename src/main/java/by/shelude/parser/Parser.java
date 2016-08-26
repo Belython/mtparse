@@ -3,6 +3,7 @@ package by.shelude.parser;
 import by.shelude.constants.*;
 import by.shelude.entities.Timetable;
 import by.shelude.entities.Transport;
+import com.sun.corba.se.spi.ior.ObjectKey;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
@@ -65,7 +66,9 @@ public class Parser {
         Document tranportStopsDocument = URLHandler.getInstance().visitGet(requeastParameters);
         Elements tramnsportStopsElements = tranportStopsDocument.getElementsByAttributeValueContaining("href", RequestParameters.STOP_ID);
         Timetable directTimetable = new Timetable();
-        Timetable revetseTimetable = new Timetable();
+        Timetable reverseTimetable = new Timetable();
+        List<TimetableParserThread> threadGroup = new ArrayList<>();
+        final Object justMonitor = new Object();
         for (Element transportStopElement: tramnsportStopsElements) {
             String transportStopURL = transportStopElement.attr(Attributes.HREF);
             String transportStopId = StringHandler.getParameterValue(transportStopURL, RequestParameters.STOP_ID);
@@ -73,14 +76,24 @@ public class Parser {
             String transportStopName = transportStopElement.text();
             requeastParameters.put(RequestParameters.STOP_ID, transportStopId);
             requeastParameters.put(RequestParameters.ROUTE_TYPE, transportRouteType);
-            List<String> timetable = parseTimetable(requeastParameters);
             if (transportRouteType.equals(RequestParametersValues.ROUTE_TYPE_DIRECT)) {
-                directTimetable.put(transportStopName, timetable);
+                directTimetable.put(transportStopName, null);
             } else {
-                revetseTimetable.put(transportStopName, timetable);
+                reverseTimetable.put(transportStopName, null);
+            }
+            threadGroup.add(new TimetableParserThread(directTimetable, reverseTimetable,
+                    requeastParameters, transportStopName, threadGroup));
+        }
+        synchronized (justMonitor) {
+            while (threadGroup.size() != 0) {
+                try {
+                    justMonitor.wait(10000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
-        List<Timetable> timetableList = Arrays.asList(directTimetable, revetseTimetable);
+        List<Timetable> timetableList = Arrays.asList(directTimetable, reverseTimetable);
         requeastParameters.remove(RequestParameters.STOP_ID);
         requeastParameters.remove(RequestParameters.ROUTE_TYPE);
         return timetableList;
